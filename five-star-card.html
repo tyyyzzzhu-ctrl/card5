@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>五星卡 · 视频卡面</title>
+<style>
+  html,body{
+    margin:0; padding:0;
+    min-height:100vh;
+    background:#0c0a07;
+    display:flex; align-items:center; justify-content:center;
+  }
+
+  /* 卡面容器：原始画布 119 x 212，等比放大 */
+  .card{
+    position:relative;
+    width:calc(119px * 2.6);
+    height:calc(212px * 2.6);
+    background:#0a0a0a;    /* 深色底：仅在视频加载前短暂可见 */
+    overflow:hidden;
+    border-radius:4px;
+  }
+
+  /* 底层：循环播放的人物动态立绘视频 */
+  .card-video{
+    position:absolute; inset:0;
+    width:100%; height:100%;
+    object-fit:cover;      /* 铺满卡面，多余部分裁切 */
+    display:block;
+    opacity:0;
+    pointer-events:none;   /* 视频层不拦截点击 */
+    transition:opacity .4s ease;
+  }
+  .card-video.ready{ opacity:1; }
+
+  /* 上层：镂空的 SVG 卡框（中间透明，透出视频；边框/装饰保留）*/
+  .card-frame{
+    position:absolute; inset:0;
+    width:100%; height:100%;
+    display:block;
+    border:0;
+    pointer-events:none;   /* 卡框只做视觉，不拦截点击 */
+    user-select:none; -webkit-user-drag:none;
+  }
+
+  /* “体验”入口：透明热区，精准覆盖 SVG 中红框圆环图案（坐标由图案非透明像素反推）*/
+  .enter-hotspot{
+    position:absolute;
+    left:65.91%; top:80.76%;
+    width:32.56%; height:18.31%;
+    border-radius:50%;
+    cursor:pointer;
+    z-index:10;
+    -webkit-tap-highlight-color:transparent;
+    /* 平时完全透明；hover 给极轻微发光提示可点 */
+    transition:box-shadow .2s ease;
+  }
+  .enter-hotspot:hover{
+    box-shadow:0 0 14px rgba(255,220,180,.45), inset 0 0 8px rgba(255,220,180,.25);
+  }
+  .enter-hotspot:focus-visible{
+    outline:2px solid rgba(255,220,180,.7); outline-offset:2px;
+  }
+</style>
+</head>
+<body>
+  <div class="card">
+    <!-- 底层视频：把你的 mp4 命名为 character.mp4 放到本目录即可 -->
+    <video class="card-video" id="cardVideo"
+           autoplay loop muted playsinline preload="auto">
+      <source src="character.mp4" type="video/mp4" />
+    </video>
+
+    <!-- 上层卡框（镂空 SVG）：纯视觉，中间透明透出视频 -->
+    <img class="card-frame" id="cardFrame" src="five-star-card-frame.svg" alt="卡框装饰" />
+
+    <!-- “体验”入口：透明热区，精准覆盖红框圆环，点击进入选择页 -->
+    <a class="enter-hotspot" id="enterHotspot" href="card-select.html"
+       role="button" aria-label="体验，进入选择页" title="体验"></a>
+  </div>
+
+<script>
+  const video = document.getElementById('cardVideo');
+
+  // 视频可播放时淡入；否则保持兜底底图（完整 SVG）
+  const showVideo = ()=> video.classList.add('ready');
+  video.addEventListener('canplay', showVideo);
+  video.addEventListener('playing', showVideo);
+
+  // 加载失败：回退到原始完整 SVG（含静态立绘），保证卡面不空
+  video.addEventListener('error', ()=>{
+    video.classList.remove('ready');
+    video.style.display = 'none';
+    const frame = document.getElementById('cardFrame');
+    frame.src = 'five-star-card.svg';   // 换回完整原图兜底
+  });
+
+  // 部分浏览器 autoplay 受限，交互后补触发
+  const kick = ()=> video.play().catch(()=>{});
+  document.addEventListener('click', kick, { once:true });
+  video.addEventListener('loadeddata', kick);
+</script>
+</body>
+</html>
